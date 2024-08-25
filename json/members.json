@@ -1,0 +1,8 @@
+{
+  "members" : [ {
+    "email" : "lopahn2@gmail.com",
+    "password" : "$2a$10$heJJRCFJMclZOnzc3G4DmecKvDvBzG/SKxsD51IlsQ8L6UnvtaQdS",
+    "role" : "ADMIN",
+    "name" : "반영환"
+  } ]
+}

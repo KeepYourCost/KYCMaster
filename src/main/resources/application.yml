@@ -4,15 +4,6 @@ server:
 spring:
   application:
     name: kyc-service
-#  datasource:
-#    url: jdbc:mysql://localhost:3306/gdscService?useUnicode=yes&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=Asia/Seoul
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#    username: root
-#    password: 1q2w3e4r
-#    hikari:
-#      max-lifetime: 1800000
-#      maximum-pool-size: 10
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -25,6 +16,9 @@ spring:
 
 jwt :
   access :
-    key : 9a1c7805bb074f31f9b36fa510d0c743a557aa44f9b5b1cd6dbb7f8905b067c8
+    key : eionflakenflkasnionewaf
     validTime : 604800000 #7?
 
+json:
+  path:
+    members: json/members.json

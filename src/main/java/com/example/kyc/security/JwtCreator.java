@@ -46,7 +46,6 @@ public class JwtCreator {
     private String getToken(Member member, Claims claims, Date currentTime, long tokenValidTime, String secretKey) {
         return Jwts.builder()
                 .setClaims(claims) //정보 저장
-                .claim(AuthorizerDto.ClaimName.ID.getValue(), String.valueOf(member.getMemberId()))
                 .claim(AuthorizerDto.ClaimName.NAME.getValue(), member.getName())
                 .setIssuedAt(currentTime)  //토큰 발행시간 정보
                 .setExpiration(new Date(currentTime.getTime() + tokenValidTime)) //Expire Time

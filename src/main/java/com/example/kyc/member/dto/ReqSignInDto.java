@@ -9,7 +9,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Getter
 @NoArgsConstructor
 public class ReqSignInDto {
-    @Email(message = "Invalid email format")
     private String email;
     private String password;
 

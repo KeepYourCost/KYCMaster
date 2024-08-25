@@ -5,7 +5,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 
 public interface TerraformService {
-    void initTerraform(int newCnt) throws IOException;
-    void applyTerraform();
+    void initTerraform(AwsCredentialDto awsCredentialDto) throws IOException;
+    int applyTerraform(String backupDir);
     void destroyTerraform();
+    void shutdown();
 }

@@ -11,21 +11,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Getter
 @NoArgsConstructor
 public class ReqSignUpDto {
-    @Email(message = "Invalid email format")
     private String email;
     private String password;
     private String role;
     private String name;
-    @Pattern(regexp = "^01[0-9]{1}-[0-9]{4}-[0-9]{4}$")
-    private String phoneNum;
 
     @Builder
-    public ReqSignUpDto(String email, String password, String role, String name, String phoneNum) {
+    public ReqSignUpDto(String email, String password, String role, String name) {
         this.email = email;
         this.password = password;
         this.role = role;
         this.name = name;
-        this.phoneNum = phoneNum;
     }
     public void encodePassword(PasswordEncoder passwordEncoder) {
         this.password = passwordEncoder.encode(this.password);
@@ -37,7 +33,6 @@ public class ReqSignUpDto {
                 .password(this.password)
                 .role(this.role)
                 .name(this.name)
-                .phoneNum(this.phoneNum)
                 .build();
     }
 }

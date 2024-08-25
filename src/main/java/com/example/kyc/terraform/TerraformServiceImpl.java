@@ -16,22 +16,25 @@ import java.nio.file.StandardOpenOption;
 @RequiredArgsConstructor
 public class TerraformServiceImpl implements TerraformService{
     private final String TERRAFORM_DIR_PATH = System.getProperty("user.dir") + "/terraform";
-    private final String TERRAFORM_FILE_PATH =  System.getProperty("user.dir") + "/terraform/main.tf";
+    private final String TERRAFORM_FILE_PATH = System.getProperty("user.dir") + "/terraform/main.tf";
+    private final String TERRAFORM_VARIABLES_PATH = System.getProperty("user.dir") + "/terraform/variables.tf";
+    private final String TERRAFORM_BACKUP_VARIABLES_PATH = System.getProperty("user.dir") + "/terraform/backup/variables.tf";
     @Override
-    public void initTerraform(int newCnt) throws IOException {
-        System.out.println(newCnt);
-        updateInstanceCount(newCnt);
+    public void initTerraform(AwsCredentialDto awsCredentialDto) throws IOException {
+        updateAwsCredentials(awsCredentialDto.getAccessKey(), awsCredentialDto.getSecretKey());
     }
 
     @Override
-    public void applyTerraform() {
+    public int applyTerraform(String backupDir) {
         try {
+            System.out.println(backupDir);
+            updateBackupDir(backupDir);
             String cmd = "terraform init && terraform apply -auto-approve && terraform output -json > terraform-output.json";
-            int exitCode = stdOutReader(getProcessBuilder(cmd).start());
-            System.out.println("Exit code: " + exitCode);
+            return stdOutReader(getProcessBuilder(cmd).start());
         } catch (Exception e) {
             System.out.println(e);
         }
+        return 0;
     }
     @Override
     public void destroyTerraform() {
@@ -43,6 +46,11 @@ public class TerraformServiceImpl implements TerraformService{
         } catch (Exception e) {
             System.out.println(e);
         }
+    }
+
+    @Override
+    public void shutdown() {
+
     }
 
 
@@ -68,20 +76,47 @@ public class TerraformServiceImpl implements TerraformService{
         return processBuilder;
     }
 
-    private String readTerraformFile() throws IOException {
-        Path path = Paths.get(TERRAFORM_FILE_PATH);
+    private String readTerraformFile(String _path) throws IOException {
+        Path path = Paths.get(_path);
         return new String(Files.readAllBytes(path));
     }
-    private void writeTerraformFile(String content) throws IOException {
-        Path path = Paths.get(TERRAFORM_FILE_PATH);
+    private void writeTerraformFile(String content, String _path) throws IOException {
+        Path path = Paths.get(_path);
         Files.write(path, content.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
     }
-    private void updateInstanceCount(int newCount) throws IOException {
-        String content = readTerraformFile();
+
+    private void updateAwsCredentials(String accessKey, String secretKey) throws IOException {
+        updateBackupAwsCredentials(accessKey, secretKey);
+        String content = readTerraformFile(TERRAFORM_VARIABLES_PATH);
         String updatedContent = content.replaceAll(
-                "(variable \"instance_count\"\\s*\\{\\s*type\\s*=\\s*number\\s*default\\s*=\\s*)\\d+(\\s*})",
-                "$1" + newCount + "$2"
+                "(variable \"access_key\"\\s*\\{\\s*description\\s*=\\s*\"AWS account access key\"\\s*type\\s*=\\s*string\\s*default\\s*=\\s*\")[^\"]*(\"\\s*})",
+                "$1" + accessKey + "$2"
+        ).replaceAll(
+                "(variable \"secret_key\"\\s*\\{\\s*description\\s*=\\s*\"AWS account secret key\"\\s*type\\s*=\\s*string\\s*default\\s*=\\s*\")[^\"]*(\"\\s*})",
+                "$1" + secretKey + "$2"
         );
-        writeTerraformFile(updatedContent);
+        writeTerraformFile(updatedContent,TERRAFORM_VARIABLES_PATH);
     }
+
+    private void updateBackupAwsCredentials(String accessKey, String secretKey) throws IOException {
+        String content = readTerraformFile(TERRAFORM_BACKUP_VARIABLES_PATH);
+        String updatedContent = content.replaceAll(
+                "(variable \"access_key\"\\s*\\{\\s*description\\s*=\\s*\"AWS account access key\"\\s*type\\s*=\\s*string\\s*default\\s*=\\s*\")[^\"]*(\"\\s*})",
+                "$1" + accessKey + "$2"
+        ).replaceAll(
+                "(variable \"secret_key\"\\s*\\{\\s*description\\s*=\\s*\"AWS account secret key\"\\s*type\\s*=\\s*string\\s*default\\s*=\\s*\")[^\"]*(\"\\s*})",
+                "$1" + secretKey + "$2"
+        );
+        writeTerraformFile(updatedContent,TERRAFORM_BACKUP_VARIABLES_PATH);
+    }
+
+    private void updateBackupDir(String backupDir) throws IOException {
+        String content = readTerraformFile(TERRAFORM_FILE_PATH);
+        String updatedContent = content.replaceAll(
+                "(backupDir=)[^\\s]*",
+                "$1" + backupDir
+        );
+        writeTerraformFile(updatedContent, TERRAFORM_FILE_PATH);
+    }
+
 }
