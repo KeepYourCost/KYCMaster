@@ -24,4 +24,4 @@ json:
     members: json/members.json
 
 uri:
-  stream: http://localhost:5001
+  stream: http://localhost:5050
