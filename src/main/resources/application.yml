@@ -22,3 +22,6 @@ jwt :
 json:
   path:
     members: json/members.json
+
+uri:
+  stream: http://localhost:5001

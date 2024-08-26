@@ -1,4 +1,4 @@
-package com.example.kyc.terraform;
+package com.example.kyc.terraform.dto;
 
 import lombok.Data;
 

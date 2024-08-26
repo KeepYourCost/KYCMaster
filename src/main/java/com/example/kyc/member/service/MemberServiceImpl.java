@@ -24,7 +24,6 @@ import java.util.List;
 public class MemberServiceImpl implements MemberService{
     private final MemberRepository memberRepository;
     private final JwtCreator jwtCreator;
-    private final ObjectMapper mapper;
 
 
     @Override
