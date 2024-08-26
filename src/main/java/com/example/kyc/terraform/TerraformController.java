@@ -6,8 +6,10 @@ import com.example.kyc.terraform.dto.AwsCredentialDto;
 import com.example.kyc.terraform.dto.TerraformApplyDto;
 import com.example.kyc.terraform.dto.TerraformDestroyDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.util.Map;
@@ -21,6 +23,15 @@ public class TerraformController {
     @PostMapping("/")
     public ResponseEntity<Message> apply(@RequestBody TerraformApplyDto terraformApplyDto) {
         return ResponseEntity.ok(new Message(StatusCode.OK, terraformService.applyTerraform(terraformApplyDto)));
+    }
+    // applyTerraform 스트림 엔드포인트 추가
+    @PostMapping(value = "/stream/apply", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamApply(@RequestBody TerraformApplyDto terraformApplyDto) {
+        return terraformService.streamApplyTerraform(terraformApplyDto);
+    }
+    @PostMapping(value="/stream/destroy", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamDestroy(@RequestBody TerraformDestroyDto terraformDestroyDto) {
+        return terraformService.streamDestroyTerraform(terraformDestroyDto);
     }
     @PostMapping("/initialization")
     public ResponseEntity<Message> initialization(@RequestBody AwsCredentialDto awsCredentialDto) throws IOException {

@@ -15,7 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,6 +32,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +51,108 @@ public class TerraformServiceImpl implements TerraformService {
     @Override
     public void initTerraform(AwsCredentialDto awsCredentialDto) throws IOException {
         updateAwsCredentials(awsCredentialDto.getAccessKey(), awsCredentialDto.getSecretKey());
+    }
+
+    @Override
+    public Flux<String> streamApplyTerraform(TerraformApplyDto terraformApplyDto) {
+        return Flux.push(sink -> {
+            try {
+                updateBackupDir(terraformApplyDto.getBackupDir());
+                updateSpotCnt(terraformApplyDto.getCnt());
+                String cmd = "terraform init && terraform apply -auto-approve && terraform output -json > terraform-output.json";
+                Process process = getProcessBuilder(cmd).start();
+
+                // 비동기적으로 프로세스 출력 읽기
+                new Thread(() -> {
+                    try {
+                        readProcessOutput(process, sink);
+                        int exitCode = process.waitFor();
+                        sink.next("Process finished with exit code: " + exitCode);
+                        sink.complete();
+                    } catch (Exception e) {
+                        sink.error(e);
+                    }
+                }).start();
+            } catch (Exception e) {
+                sink.error(e);
+            }
+        });
+    }
+    @Override
+    public Flux<String> streamDestroyTerraform(TerraformDestroyDto terraformDestroyDto) {
+        return Flux.push(sink -> {
+            try {
+                JsonNode rootNode = mapper.readTree(new File(TERRAFORM_OUTPUT));
+                int removeIdx = terraformDestroyDto.getRemoveIdx();
+                int currentIdx = terraformDestroyDto.getCurrentIdx();
+
+                String cmd;
+                if (removeIdx == -1 && currentIdx == -1) {
+                    // 전체 인스턴스 삭제
+                    cmd = "terraform destroy -auto-approve";
+                } else {
+                    // 개별 인스턴스 삭제
+                    if (removeIdx >= this.getSpotList().size() || removeIdx < 0) {
+                        sink.error(new CustomException(StatusCode.OUT_RANGE));
+                        return;
+                    }
+                    cmd = String.format("terraform destroy -target=aws_instance.kyc_spot_instance[%d] -auto-approve", removeIdx);
+                }
+
+                Process process = getProcessBuilder(cmd).start();
+
+                // 비동기적으로 프로세스 출력 읽기
+                new Thread(() -> {
+                    try {
+                        readProcessOutput(process, sink);
+                        int exitCode = process.waitFor();
+
+                        if (exitCode == 0 && removeIdx == -1 && currentIdx == -1) {
+                            // 모든 인스턴스 삭제 후 JSON 업데이트
+                            ((ArrayNode) rootNode.get("instance_ids").get("value")).removeAll();
+                            ((ArrayNode) rootNode.get("public_dns").get("value")).removeAll();
+                            ((ArrayNode) rootNode.get("public_ips").get("value")).removeAll();
+                            mapper.writerWithDefaultPrettyPrinter().writeValue(new File(TERRAFORM_OUTPUT), rootNode);
+                        } else if (exitCode == 0) {
+                            // 특정 인스턴스 삭제 후 JSON 업데이트
+                            ArrayNode instanceIds = (ArrayNode) rootNode.get("instance_ids").get("value");
+                            ArrayNode publicDnsList = (ArrayNode) rootNode.get("public_dns").get("value");
+                            ArrayNode publicIps = (ArrayNode) rootNode.get("public_ips").get("value");
+
+                            instanceIds.set(removeIdx, String.format("removed_instance / current instance ID: %d", currentIdx));
+                            publicDnsList.set(removeIdx, String.format("removed_instance / current instance ID: %d", currentIdx));
+                            publicIps.set(removeIdx, String.format("removed_instance / current instance ID: %d", currentIdx));
+                            mapper.writerWithDefaultPrettyPrinter().writeValue(new File(TERRAFORM_OUTPUT), rootNode);
+                        }
+
+                        sink.next("Process finished with exit code: " + exitCode);
+                        sink.complete();
+                    } catch (Exception e) {
+                        sink.error(e);
+                    }
+                }).start();
+
+            } catch (Exception e) {
+                sink.error(e);
+            }
+        });
+    }
+
+
+    private void readProcessOutput(Process process, FluxSink<String> sink) throws IOException {
+        BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+        String s;
+        // stdout 읽기
+        while ((s = stdInput.readLine()) != null) {
+            sink.next(s);  // 데이터를 읽을 때마다 바로 sink로 전달
+        }
+
+        // stderr 읽기
+        while ((s = stdError.readLine()) != null) {
+            sink.next("ERROR: " + s);  // 에러 메시지도 바로 전달
+        }
     }
 
     @Override
