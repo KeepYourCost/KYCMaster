@@ -35,7 +35,7 @@ variable "spot_instance_type" {
 
 variable "instance_count" {
   type    = number
-  default = 2
+  default = 1
 }
 
 resource "aws_key_pair" "key_pair" {
