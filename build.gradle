@@ -67,6 +67,12 @@ dependencyManagement {
 	}
 }
 
+tasks.processResources {
+	from('terraform') {
+		into '/root/app/build/libs/' // 원하는 폴더 경로로 설정 가능
+	}
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }
