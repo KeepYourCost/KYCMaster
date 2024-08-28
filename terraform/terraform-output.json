@@ -1,0 +1,17 @@
+{
+  "instance_ids" : {
+    "sensitive" : false,
+    "type" : [ "tuple", [ "string" ] ],
+    "value" : [ ]
+  },
+  "public_dns" : {
+    "sensitive" : false,
+    "type" : [ "tuple", [ "string" ] ],
+    "value" : [ ]
+  },
+  "public_ips" : {
+    "sensitive" : false,
+    "type" : [ "tuple", [ "string" ] ],
+    "value" : [ ]
+  }
+}

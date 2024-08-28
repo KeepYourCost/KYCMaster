@@ -37,7 +37,6 @@ out/
 .vscode/
 
 /terraform/.terraform/providers
-/terraform/*.json
 /terraform/.terraform.lock.hcl
 /terraform/terraform.tfstate
 /terraform/terraform.tfstate.backup
